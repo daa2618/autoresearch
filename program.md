@@ -77,6 +77,10 @@ Record your baseline `val_rmse` on first run before making any changes.
 `sklearn`, `numpy`, `scipy`, `pandas`  
 If you want `xgboost` or `lightgbm`, try to import and gracefully skip if not installed.
 
+
+### Constraints
+- each experiment including any grid search within it should complete in under 60 seconds
+
 ---
 
 ## Experiment log
@@ -86,7 +90,20 @@ Record every experiment here as you go. Format:
 ```
 | # | Change | val_rmse | val_mae | kept? |
 |---|--------|----------|---------|-------|
-| 0 | Baseline: Ridge alpha=1.0 + log(y) | TBD | TBD | — |
+| 0 | Baseline: Ridge alpha=1.0 + log(y) | 10255.90 | 9006.40 | — |
+| 1 | HistGradientBoostingRegressor + log(y) | 31948.37 | 28506.41 | no |
+| 1b | HistGradientBoostingRegressor no log(y) | 31882.69 | 28440.73 | no |
+| 2 | Ridge + cyclical month + interactions + momentum | 11187.45 | 9812.86 | no |
+| 3 | Ridge alpha=270 + log(y) (tuned alpha) | 2965.21 | 2572.72 | yes |
+| 4 | + cyclical month + momentum features, alpha=290 | 2570.81 | 2270.18 | yes |
+| 5 | Ridge ensemble (avg over alphas) | 4009.36 | 3550.22 | no |
+| 6 | + ratio/acceleration features | 2732.01 | 2353.98 | no |
+| 7 | ElasticNet (best=l1_ratio=0, same as Ridge) | 2568.12 | — | no |
+| 8 | Box-Cox power transform on target | 136359.96 | — | no |
+| 9 | Polynomial features degree 2 + tuned alpha | 4273.31 | — | no |
+| 10 | Ridge + HGBR residual stacking | 3785.59 | 2949.37 | no |
+| 11 | Sample weighting (linear/exponential) | 3122/7645 | — | no |
+| 12 | Feature selection: drop roll6,roll12_std,cos,mom112 + alpha=280 | 2322.28 | 2089.08 | yes |
 ```
 
 ---
