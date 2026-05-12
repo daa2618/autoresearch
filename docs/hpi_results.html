@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>autoresearch — UK HPI: a 77.4% RMSE improvement</title>
+<style>
+  :root {
+    --bg:        #fbfaf7;
+    --ink:       #1f2024;
+    --muted:    #5a5d66;
+    --accent:    #1d6fbf;
+    --good:      #2a7a4b;
+    --bad:       #a8332b;
+    --kept:      #2a7a4b;
+    --rule:      #d9d5cb;
+    --code-bg:  #f1efe7;
+  }
+  html, body { background: var(--bg); color: var(--ink); }
+  body {
+    font: 16px/1.55 -apple-system, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    max-width: 880px;
+    margin: 2.5rem auto;
+    padding: 0 1.25rem 4rem;
+  }
+  h1 { font-size: 2rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  h2 { font-size: 1.35rem; margin: 2.4rem 0 .5rem; border-bottom: 1px solid var(--rule); padding-bottom: .25rem; }
+  h3 { font-size: 1.05rem; margin: 1.6rem 0 .35rem; }
+  p, li { color: var(--ink); }
+  .lede { color: var(--muted); margin-top: .25rem; }
+  .hero {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0 1rem;
+  }
+  .stat {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: .85rem 1rem;
+  }
+  .stat .k { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .stat .v { font-size: 1.55rem; font-weight: 600; margin-top: .15rem; }
+  .stat .v.good { color: var(--good); }
+  figure { margin: 1.25rem 0; }
+  figcaption { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: .8rem 1rem;
+    overflow-x: auto;
+    font: 13px/1.5 "SF Mono", Menlo, Consolas, monospace;
+  }
+  code { font: 13px/1.4 "SF Mono", Menlo, Consolas, monospace; background: var(--code-bg); padding: .05em .35em; border-radius: 3px; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; margin: .5rem 0 1rem; }
+  th, td { border-bottom: 1px solid var(--rule); padding: .45rem .55rem; text-align: left; vertical-align: top; }
+  th { background: #f0ede4; font-weight: 600; }
+  tr.kept td { background: #effaf2; }
+  tr.kept td:last-child { color: var(--kept); font-weight: 600; }
+  tr.bad td:last-child { color: var(--bad); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pill { display: inline-block; font-size: .72rem; padding: .1em .55em; border-radius: 10px; background: #eae6d8; color: var(--ink); vertical-align: middle; }
+  .pill.good { background: #d9efe1; color: var(--good); }
+  .pill.bad  { background: #f5dcd9; color: var(--bad); }
+  .loop-diagram { background: #fff; border: 1px solid var(--rule); border-radius: 6px; }
+  .chart { background: #fff; border: 1px solid var(--rule); border-radius: 6px; }
+  ul { padding-left: 1.2rem; }
+  li { margin: .15rem 0; }
+  .footer { color: var(--muted); font-size: .85rem; margin-top: 3rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>autoresearch on UK HPI</h1>
+<p class="lede">An AI agent ran 12 experiments on a one-file ML script and cut next-month house-price RMSE from £10,256 to £2,322 — a 77.4% reduction.</p>
+
+<div class="hero">
+  <div class="stat"><div class="k">Baseline RMSE</div><div class="v">£10,256</div></div>
+  <div class="stat"><div class="k">Best RMSE</div><div class="v good">£2,322</div></div>
+  <div class="stat"><div class="k">Improvement</div><div class="v good">−77.4%</div></div>
+</div>
+
+<p>The setup: <code>prepare.py</code> loads UK Land Registry monthly prices (1990&ndash;2026) and builds a frozen feature set with a chronological train/val/test split. <code>train.py</code> is the only file the agent edits — model class, hyperparameters, extra features, target transform, all fair game. After each edit the agent runs the script, reads back <code>val_rmse</code>, and decides whether to keep or revert.</p>
+
+<h2>RMSE across runs</h2>
+
+<figure>
+<svg class="chart" viewBox="0 0 820 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bar chart of validation RMSE for each experiment">
+  <!-- background grid -->
+  <defs>
+    <pattern id="grid" width="80" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 80 0 L 0 0 0 40" fill="none" stroke="#eeeae0" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect x="60" y="20" width="740" height="280" fill="url(#grid)"/>
+
+  <!-- axes -->
+  <line x1="60" y1="20" x2="60" y2="300" stroke="#888" stroke-width="1"/>
+  <line x1="60" y1="300" x2="800" y2="300" stroke="#888" stroke-width="1"/>
+
+  <!-- Y axis label and ticks (scale: 0 to 35000, clipped; one bar is off-scale) -->
+  <text x="14" y="170" font-family="sans-serif" font-size="11" fill="#5a5d66" transform="rotate(-90 14 170)" text-anchor="middle">val_rmse (£)</text>
+
+  <!-- Y ticks at 0, 5k, 10k, 15k, 20k, 25k, 30k, 35k -->
+  <g font-family="sans-serif" font-size="10" fill="#5a5d66">
+    <text x="55" y="303" text-anchor="end">0</text>
+    <text x="55" y="263" text-anchor="end">5,000</text>
+    <text x="55" y="223" text-anchor="end">10,000</text>
+    <text x="55" y="183" text-anchor="end">15,000</text>
+    <text x="55" y="143" text-anchor="end">20,000</text>
+    <text x="55" y="103" text-anchor="end">25,000</text>
+    <text x="55" y="63"  text-anchor="end">30,000</text>
+    <text x="55" y="23"  text-anchor="end">35,000</text>
+  </g>
+  <g stroke="#cfcabb" stroke-width="1">
+    <line x1="60" y1="260" x2="800" y2="260"/>
+    <line x1="60" y1="220" x2="800" y2="220"/>
+    <line x1="60" y1="180" x2="800" y2="180"/>
+    <line x1="60" y1="140" x2="800" y2="140"/>
+    <line x1="60" y1="100" x2="800" y2="100"/>
+    <line x1="60" y1="60"  x2="800" y2="60"/>
+    <line x1="60" y1="20"  x2="800" y2="20"/>
+  </g>
+
+  <!-- Baseline reference line at 10,256 (y = 300 - 10256/35000*280 = 300 - 82.05 = 217.95) -->
+  <line x1="60" y1="218" x2="800" y2="218" stroke="#1d6fbf" stroke-dasharray="4,4" stroke-width="1"/>
+  <text x="795" y="213" font-family="sans-serif" font-size="10" fill="#1d6fbf" text-anchor="end">baseline £10,256</text>
+
+  <!-- Bars: 15 experiments. Each bar slot 46px wide centred in 740/15 = 49.3 -->
+  <!-- Bar X positions: starts at 70, width ~38, gap ~11 -->
+  <!-- height = rmse/35000 * 280 (clamped); y = 300 - height -->
+  <!-- order: 0, 1, 1b, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 11b, 12 -->
+
+  <g font-family="sans-serif" font-size="10">
+    <!-- 0: 10255.90 -> h=82, y=218, baseline-grey -->
+    <rect x="70"  y="218" width="38" height="82" fill="#8a8c94"/>
+    <text x="89"  y="313" fill="#5a5d66" text-anchor="middle">0</text>
+    <text x="89"  y="213" fill="#5a5d66" text-anchor="middle" font-size="9">10.3k</text>
+
+    <!-- 1: 31948.37 -> h=256, y=44, red -->
+    <rect x="119" y="44"  width="38" height="256" fill="#a8332b"/>
+    <text x="138" y="313" fill="#5a5d66" text-anchor="middle">1</text>
+    <text x="138" y="39"  fill="#a8332b" text-anchor="middle" font-size="9">31.9k</text>
+
+    <!-- 1b: 31882.69 -> h=255, y=45, red -->
+    <rect x="168" y="45"  width="38" height="255" fill="#a8332b"/>
+    <text x="187" y="313" fill="#5a5d66" text-anchor="middle">1b</text>
+
+    <!-- 2: 11187.45 -> h=90, y=210, red -->
+    <rect x="217" y="210" width="38" height="90"  fill="#a8332b"/>
+    <text x="236" y="313" fill="#5a5d66" text-anchor="middle">2</text>
+    <text x="236" y="205" fill="#a8332b" text-anchor="middle" font-size="9">11.2k</text>
+
+    <!-- 3: 2965.21 -> h=24, y=276, green (KEPT) -->
+    <rect x="266" y="276" width="38" height="24"  fill="#2a7a4b"/>
+    <text x="285" y="313" fill="#5a5d66" text-anchor="middle" font-weight="600">3</text>
+    <text x="285" y="271" fill="#2a7a4b" text-anchor="middle" font-size="9" font-weight="600">2,965</text>
+
+    <!-- 4: 2570.81 -> h=21, y=279, green (KEPT) -->
+    <rect x="315" y="279" width="38" height="21"  fill="#2a7a4b"/>
+    <text x="334" y="313" fill="#5a5d66" text-anchor="middle" font-weight="600">4</text>
+    <text x="334" y="274" fill="#2a7a4b" text-anchor="middle" font-size="9" font-weight="600">2,571</text>
+
+    <!-- 5: 4009.36 -> h=32, y=268, red -->
+    <rect x="364" y="268" width="38" height="32"  fill="#a8332b"/>
+    <text x="383" y="313" fill="#5a5d66" text-anchor="middle">5</text>
+
+    <!-- 6: 2732.01 -> h=22, y=278, red -->
+    <rect x="413" y="278" width="38" height="22"  fill="#a8332b"/>
+    <text x="432" y="313" fill="#5a5d66" text-anchor="middle">6</text>
+
+    <!-- 7: 2568.12 -> h=21, y=279, red -->
+    <rect x="462" y="279" width="38" height="21"  fill="#a8332b"/>
+    <text x="481" y="313" fill="#5a5d66" text-anchor="middle">7</text>
+
+    <!-- 8: 136359.96 -> off-scale, draw to top with hatched fill -->
+    <rect x="511" y="20"  width="38" height="280" fill="#a8332b" opacity="0.55"/>
+    <text x="530" y="313" fill="#5a5d66" text-anchor="middle">8</text>
+    <text x="530" y="15"  fill="#a8332b" text-anchor="middle" font-size="9" font-weight="600">136k ↑</text>
+
+    <!-- 9: 4273.31 -> h=34, y=266, red -->
+    <rect x="560" y="266" width="38" height="34"  fill="#a8332b"/>
+    <text x="579" y="313" fill="#5a5d66" text-anchor="middle">9</text>
+
+    <!-- 10: 3785.59 -> h=30, y=270, red -->
+    <rect x="609" y="270" width="38" height="30"  fill="#a8332b"/>
+    <text x="628" y="313" fill="#5a5d66" text-anchor="middle">10</text>
+
+    <!-- 11: 3122.20 -> h=25, y=275, red -->
+    <rect x="658" y="275" width="38" height="25"  fill="#a8332b"/>
+    <text x="677" y="313" fill="#5a5d66" text-anchor="middle">11</text>
+
+    <!-- 11b: 7645.27 -> h=61, y=239, red -->
+    <rect x="707" y="239" width="38" height="61"  fill="#a8332b"/>
+    <text x="726" y="313" fill="#5a5d66" text-anchor="middle">11b</text>
+
+    <!-- 12: 2322.28 -> h=19, y=281, green (KEPT, best) -->
+    <rect x="756" y="281" width="38" height="19"  fill="#2a7a4b" stroke="#0f4a2a" stroke-width="1.5"/>
+    <text x="775" y="313" fill="#5a5d66" text-anchor="middle" font-weight="700">12</text>
+    <text x="775" y="276" fill="#2a7a4b" text-anchor="middle" font-size="9" font-weight="700">2,322 ★</text>
+  </g>
+
+  <!-- Legend -->
+  <g font-family="sans-serif" font-size="11">
+    <rect x="540" y="328" width="12" height="12" fill="#8a8c94"/>
+    <text x="558" y="338" fill="#1f2024">baseline</text>
+    <rect x="620" y="328" width="12" height="12" fill="#2a7a4b"/>
+    <text x="638" y="338" fill="#1f2024">kept</text>
+    <rect x="680" y="328" width="12" height="12" fill="#a8332b"/>
+    <text x="698" y="338" fill="#1f2024">reverted</text>
+  </g>
+  <text x="60" y="338" font-family="sans-serif" font-size="11" fill="#5a5d66">experiment #</text>
+</svg>
+<figcaption>Three experiments improved on the previous best (#3 alpha tuning, #4 cyclical+momentum features, #12 feature selection). Most ideas were tried and reverted. Experiment #8 (Box&ndash;Cox target) is off-scale at £136k RMSE.</figcaption>
+</figure>
+
+<h2>The autoresearch loop</h2>
+
+<figure>
+<svg class="loop-diagram" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the autoresearch experimental loop">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1d6fbf"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2a7a4b"/>
+    </marker>
+    <marker id="arrr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a8332b"/>
+    </marker>
+  </defs>
+
+  <!-- 5 boxes arranged in a ring -->
+  <!-- Read state (top-left) -->
+  <g>
+    <rect x="40"  y="40"  width="160" height="56" rx="8" fill="#fff" stroke="#1d6fbf" stroke-width="1.5"/>
+    <text x="120" y="64" font-family="sans-serif" font-size="13" font-weight="600" fill="#1f2024" text-anchor="middle">1. Read state</text>
+    <text x="120" y="83" font-family="sans-serif" font-size="11" fill="#5a5d66" text-anchor="middle">program.md + train.py</text>
+  </g>
+
+  <!-- Propose change (top) -->
+  <g>
+    <rect x="240" y="40" width="160" height="56" rx="8" fill="#fff" stroke="#1d6fbf" stroke-width="1.5"/>
+    <text x="320" y="64" font-family="sans-serif" font-size="13" font-weight="600" fill="#1f2024" text-anchor="middle">2. Propose ONE change</text>
+    <text x="320" y="83" font-family="sans-serif" font-size="11" fill="#5a5d66" text-anchor="middle">model, features, target...</text>
+  </g>
+
+  <!-- Edit + run (top-right) -->
+  <g>
+    <rect x="440" y="40" width="160" height="56" rx="8" fill="#fff" stroke="#1d6fbf" stroke-width="1.5"/>
+    <text x="520" y="64" font-family="sans-serif" font-size="13" font-weight="600" fill="#1f2024" text-anchor="middle">3. Edit &amp; run</text>
+    <text x="520" y="83" font-family="sans-serif" font-size="11" fill="#5a5d66" text-anchor="middle">python train.py (&lt; 60 s)</text>
+  </g>
+
+  <!-- Read val_rmse (right) -->
+  <g>
+    <rect x="640" y="110" width="160" height="56" rx="8" fill="#fff" stroke="#1d6fbf" stroke-width="1.5"/>
+    <text x="720" y="134" font-family="sans-serif" font-size="13" font-weight="600" fill="#1f2024" text-anchor="middle">4. Read val_rmse</text>
+    <text x="720" y="153" font-family="sans-serif" font-size="11" fill="#5a5d66" text-anchor="middle">parse stdout</text>
+  </g>
+
+  <!-- Decision diamond (centre) -->
+  <g>
+    <polygon points="400,130 500,180 400,230 300,180" fill="#fff" stroke="#1f2024" stroke-width="1.5"/>
+    <text x="400" y="178" font-family="sans-serif" font-size="12" font-weight="600" fill="#1f2024" text-anchor="middle">improved?</text>
+    <text x="400" y="195" font-family="sans-serif" font-size="11" fill="#5a5d66" text-anchor="middle">vs prev best</text>
+  </g>
+
+  <!-- Keep box (bottom-right) -->
+  <g>
+    <rect x="540" y="210" width="140" height="50" rx="8" fill="#effaf2" stroke="#2a7a4b" stroke-width="1.5"/>
+    <text x="610" y="232" font-family="sans-serif" font-size="13" font-weight="600" fill="#2a7a4b" text-anchor="middle">5a. Keep + log</text>
+    <text x="610" y="249" font-family="sans-serif" font-size="11" fill="#5a5d66" text-anchor="middle">update best</text>
+  </g>
+
+  <!-- Revert box (bottom-left) -->
+  <g>
+    <rect x="120" y="210" width="140" height="50" rx="8" fill="#fdeae8" stroke="#a8332b" stroke-width="1.5"/>
+    <text x="190" y="232" font-family="sans-serif" font-size="13" font-weight="600" fill="#a8332b" text-anchor="middle">5b. Revert + log</text>
+    <text x="190" y="249" font-family="sans-serif" font-size="11" fill="#5a5d66" text-anchor="middle">restore train.py</text>
+  </g>
+
+  <!-- Arrows: 1 -> 2 -> 3 -> 4 -> decision -->
+  <line x1="200" y1="68" x2="238" y2="68" stroke="#1d6fbf" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="400" y1="68" x2="438" y2="68" stroke="#1d6fbf" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 600 80 Q 700 80 720 108" fill="none" stroke="#1d6fbf" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 700 165 Q 580 175 502 178" fill="none" stroke="#1d6fbf" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Decision -> keep / revert -->
+  <path d="M 470 205 Q 530 220 540 230" fill="none" stroke="#2a7a4b" stroke-width="1.5" marker-end="url(#arrg)"/>
+  <text x="510" y="200" font-family="sans-serif" font-size="11" fill="#2a7a4b">yes</text>
+  <path d="M 330 205 Q 270 220 258 230" fill="none" stroke="#a8332b" stroke-width="1.5" marker-end="url(#arrr)"/>
+  <text x="280" y="200" font-family="sans-serif" font-size="11" fill="#a8332b">no</text>
+
+  <!-- Back to step 1 from keep/revert -->
+  <path d="M 190 210 Q 120 180 90 120 Q 60 70 50 60" fill="none" stroke="#1d6fbf" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr)"/>
+  <path d="M 610 210 Q 720 200 760 100 Q 770 60 220 50" fill="none" stroke="#1d6fbf" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr)"/>
+
+  <text x="20" y="30" font-family="sans-serif" font-size="11" fill="#5a5d66">repeat &rarr;</text>
+</svg>
+<figcaption>Each cycle proposes one targeted change, runs the script, and is judged solely on val_rmse. Changes that improve the metric are kept; everything else is reverted. The dashed return arrows close the loop.</figcaption>
+</figure>
+
+<h2>What worked: the three winning experiments</h2>
+
+<p>Of the 12 experiments, only three improved on the previous best. Together they account for the entire 77.4% reduction.</p>
+
+<h3>1. Tuned regularisation (Exp #3): £10,256 &rarr; £2,965 &nbsp;<span class="pill good">−71%</span></h3>
+
+<p>The single biggest win. The Ridge baseline used the sklearn default <code>alpha=1.0</code>; a small sweep found the small-sample optimum near <code>alpha=270</code>. With ~300 training rows and trending validation prices, much stronger shrinkage was needed than the default assumes.</p>
+
+<pre><code>from sklearn.linear_model import RidgeCV
+
+# Sweep on log-space target — the model has to predict values
+# that exceed the training range, so heavy shrinkage helps.
+model = Pipeline([
+    ("scaler", StandardScaler()),
+    ("reg",    RidgeCV(alphas=np.logspace(-1, 3, 50))),
+])
+model.fit(X_train, np.log1p(y_train))
+# best alpha settled around 270; later experiments fine-tuned to 280.</code></pre>
+
+<h3>2. Cyclical month + short-horizon momentum (Exp #4): £2,965 &rarr; £2,571 &nbsp;<span class="pill good">−13%</span></h3>
+
+<p>Two engineered columns added on top of the base features. The sine encoding gives the model a smooth, wrap-around representation of seasonality; the momentum term — last month's price minus six months ago — encodes the local trend the model would otherwise have to reconstruct from individual lags.</p>
+
+<pre><code>def add_features(X):
+    month = X[:, 1]
+    # Cyclical month encoding — smooth and wrap-around
+    month_sin = np.sin(2 * np.pi * month / 12).reshape(-1, 1)
+    month_cos = np.cos(2 * np.pi * month / 12).reshape(-1, 1)
+    # Short-horizon price momentum (lag1 − lag6)
+    momentum_1_6  = (X[:, 2] - X[:, 4]).reshape(-1, 1)
+    momentum_1_12 = (X[:, 2] - X[:, 5]).reshape(-1, 1)
+    return np.hstack([X, month_sin, month_cos, momentum_1_6, momentum_1_12])
+
+X_train = add_features(X_train)
+X_val   = add_features(X_val)</code></pre>
+
+<h3>3. Feature selection: drop the noisy ones (Exp #12): £2,571 &rarr; £2,322 &nbsp;<span class="pill good">−10%</span></h3>
+
+<p>Counter-intuitively, the final win came from <em>removing</em> features. Four columns — the 6-month rolling mean, the 12-month rolling std, the cosine month term (redundant given the linear <code>month</code> and <code>month_sin</code>), and the longer 12-month momentum — were dropped after ablation showed each one degraded validation RMSE. Alpha was then re-tuned to 280.</p>
+
+<pre><code># Feature indices after add_features():
+#   0  year       1  month
+#   2  lag1       3  lag3       4  lag6       5  lag12
+#   6  roll3      7  roll6      8  roll12_std
+#   9  pct_1m    10  pct_annual 11  hpi
+#  12+  property-type prices
+#  ..  19 month_sin  20 month_cos
+#  ..  21 momentum_1_6  22 momentum_1_12
+
+# Drop roll6, roll12_std, month_cos, momentum_1_12
+n_feat    = X_train.shape[1]
+keep_cols = [i for i in range(n_feat) if i not in {7, 8, 20, 22}]
+X_train   = X_train[:, keep_cols]
+X_val     = X_val[:,   keep_cols]
+
+model = Pipeline([
+    ("scaler", StandardScaler()),
+    ("reg",    Ridge(alpha=280.0)),
+])</code></pre>
+
+<h2>What we tried that failed</h2>
+
+<p>Nine of the twelve experiments were reverted. The interesting pattern: every &ldquo;more-sophisticated&rdquo; class of model lost to a well-tuned linear baseline.</p>
+
+<table>
+<thead><tr><th>#</th><th>Idea</th><th class="num">val_rmse (£)</th><th>Why it failed</th></tr></thead>
+<tbody>
+<tr class="bad"><td>1, 1b</td><td>HistGradientBoostingRegressor (with and without log target)</td><td class="num">31,948 / 31,883</td><td>Trees cannot extrapolate — validation prices exceed the training range, so every leaf systematically under-predicts.</td></tr>
+<tr class="bad"><td>2</td><td>Cyclical month + interactions + momentum added at default <code>alpha=1.0</code></td><td class="num">11,187</td><td>Engineered features without re-tuning shrinkage — under-regularised Ridge over-fit on the new columns.</td></tr>
+<tr class="bad"><td>5</td><td>Ridge ensemble averaging α ∈ {100, 200, 290, 400, 600, 1000}</td><td class="num">4,009</td><td>The under-regularised members (α=100, 200) dragged the ensemble mean away from the optimum.</td></tr>
+<tr class="bad"><td>6</td><td>Ratio + acceleration features (<code>lag1/roll3</code>, <code>lag3 − lag12</code>)</td><td class="num">2,732</td><td>Redundant with the differences and rolling stats already present; added noise, not signal.</td></tr>
+<tr class="bad"><td>7</td><td>ElasticNet grid search over α and L1 ratio</td><td class="num">2,568</td><td>Best L1 ratio came out as <code>0.0</code> — i.e. pure Ridge. Every feature carried some signal; sparsity was the wrong prior.</td></tr>
+<tr class="bad"><td>8</td><td>Box&ndash;Cox <code>PowerTransformer</code> on the target instead of <code>log1p</code></td><td class="num">136,360</td><td>The fitted λ optimises normality on training prices; the inverse transform amplifies error catastrophically when predictions drift above the fitted range.</td></tr>
+<tr class="bad"><td>9</td><td>PolynomialFeatures degree 2 with re-tuned α</td><td class="num">4,273</td><td>~190 interaction terms vs ~300 training rows — even heavy shrinkage couldn't recover.</td></tr>
+<tr class="bad"><td>10</td><td>Ridge + HGBR residual stacking</td><td class="num">3,786</td><td>The booster over-fit Ridge's training residuals; the corrections didn't generalise to the validation period.</td></tr>
+<tr class="bad"><td>11, 11b</td><td>Sample weighting (linear / exponential recency)</td><td class="num">3,122 / 7,645</td><td>Up-weighting recent rows starved the model of long-run trend information and skewed the slope estimate.</td></tr>
+</tbody>
+</table>
+
+<p>The pattern is consistent: on ~300 training rows with a trending target, anything that adds parameters (boosting, polynomials, stacking, ensembles) loses to a well-tuned linear model. The agent kept the change only when the validation RMSE moved in the right direction — no narrative carried weight on its own.</p>
+
+<h2>Final configuration</h2>
+
+<pre><code>Pipeline:    StandardScaler → Ridge(alpha=280.0)
+Target:      log1p(y) on fit, expm1 on predict
+Features:    19 selected from 23 base + engineered columns
+             (drop roll6, roll12_std, month_cos, momentum_1_12)
+val_rmse:    £2,322.28
+val_mae:     £2,089.08
+val_mape:    0.86%</code></pre>
+
+<p>Mean UK house price during validation is ~£270k; a MAPE of 0.86% means typical error is around £2,300 — well within the noise of a single month's movement.</p>
+
+<p class="footer">Source: experiment log in <code>program.md</code> and full write-up in <a href="analysis.md">docs/analysis.md</a>. Generated from 12 reverted-or-kept iterations of <code>train.py</code> in this repo.</p>
+
+</body>
+</html>
